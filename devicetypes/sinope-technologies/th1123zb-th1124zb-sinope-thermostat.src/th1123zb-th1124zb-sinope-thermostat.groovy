@@ -6,11 +6,13 @@ SVN-435
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 **/
 preferences {
-    input("zipcode", "text", title: "ZipCode", description: "Enter your ZipCode for setting outdoor Temp")
+    input("zipcode", "text", title: "ZipCode", description: "Enter your ZipCode for outdoor Temp, or leave blank to display set point")
     input("BacklightAutoDimParam", "enum", title:"Backlight setting (default: blank)", description: "On Demand or Sensing", options: ["On Demand", "Sensing"], multiple: false, required: false)
 	input("trace", "bool", title: "Trace", description:"Set it to true to enable tracing")
-	input("logFilter", "number", title: "(1=ERROR only,2=<1+WARNING>,3=<2+INFO>,4=<3+DEBUG>,5=<4+TRACE>)", range: "1..5",
-		description: "optional")
+//	input("logFilter", "number", title: "(1=ERROR only,2=<1+WARNING>,3=<2+INFO>,4=<3+DEBUG>,5=<4+TRACE>)", range: "1..5",
+//		description: "optional")
+	input("logFilter", "enum", title: "Trace Level (valid only if tracing is enabled)", options: ["Errors", "Warnings", "Info", "Debug", "Trace"], multiple: false, 
+        required: false, description: "optional")
 }
 
 metadata {
@@ -178,12 +180,12 @@ metadata {
 		details(["thermostatMulti",
 			//			"heatLevelUp","heatingSetpoint","heatLevelDown",
 			"thermostatMode",
-			"weatherTemperature", 
+            "weatherTemperature", 
 			"lockStatus",
 			//"temperatureDisplayMode", 
 			//"configure",
-			"refresh",
-            "sliderTemperature"
+            "sliderTemperature",
+			"refresh"
 		])
 	}
 }
@@ -1060,13 +1062,31 @@ private int get_LOG_TRACE() {
 	return 5
 }
 
+private int getLogFilterLevel(logFilter) {
+    switch (logFilter) {
+         case "Errors":
+             return 1
+         case "Warnings":
+             return 2
+         case "Info":
+             return 3
+         case "Debug":
+             return 4
+         case "Trace":
+             return 5
+         default:
+             return 0
+    }
+}
+
 def traceEvent(logFilter, message, displayEvent = false, traceLevel = 4, sendMessage = true) {
 	int LOG_ERROR = get_LOG_ERROR()
 	int LOG_WARN = get_LOG_WARN()
 	int LOG_INFO = get_LOG_INFO()
 	int LOG_DEBUG = get_LOG_DEBUG()
 	int LOG_TRACE = get_LOG_TRACE()
-	int filterLevel = (logFilter) ? logFilter.toInteger() : get_LOG_WARN()
+    int logFilterInt = getLogFilterLevel(logFilter)
+	int filterLevel = (logFilterInt > 0) ? logFilterInt : get_LOG_WARN()
     
 	if ((displayEvent) || (sendMessage)) {
 		def results = [
