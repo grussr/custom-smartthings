@@ -6,7 +6,7 @@ SVN-435
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 **/
 preferences {
-	input("zipcode", "text", title: "ZipCode", description: "Enter your ZipCode for setting outdoor Temp")
+    input("zipcode", "text", title: "ZipCode", description: "Enter your ZipCode for setting outdoor Temp")
     input("BacklightAutoDimParam", "enum", title:"Backlight setting (default: blank)", description: "On Demand or Sensing", options: ["On Demand", "Sensing"], multiple: false, required: false)
 	input("trace", "bool", title: "Trace", description:"Set it to true to enable tracing")
 	input("logFilter", "number", title: "(1=ERROR only,2=<1+WARNING>,3=<2+INFO>,4=<3+DEBUG>,5=<4+TRACE>)", range: "1..5",
@@ -80,7 +80,7 @@ metadata {
 
 		multiAttributeTile(name: "thermostatMulti", type: "thermostat", width: 6, height: 4, canChangeIcon: true) {
 			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
-				attributeState("default", label: '${currentValue}', unit: "dF", backgroundColor: "#269bd2")
+				attributeState("default", label: '${currentValue}°', unit: "dF", backgroundColor: "#269bd2", defaultState: true)
 			}
 			tileAttribute("device.heatingSetpoint", key: "VALUE_CONTROL") {
 				attributeState("VALUE_UP", action: "heatLevelUp")
@@ -99,8 +99,13 @@ metadata {
 				attributeState("heat", label: '${name}')
 			}
 			tileAttribute("device.heatingSetpoint", key: "HEATING_SETPOINT") {
-				attributeState("default", label: '${currentValue}', unit: "dF")
+				attributeState("default", label: '${currentValue}°', unit: "dF", defaultState: true)
 			}
+		}
+        
+        controlTile("sliderTemperature", "device.heatingSetpoint", "slider", height: 2, width: 2, range: "(41..86)") {
+                // TODO: fix range to be dynamic
+    			state "default", action:"setThermostatSetpoint"
 		}
 		//-- Value Tiles -------------------------------------------------------------------------------------------
 
@@ -149,8 +154,8 @@ metadata {
 			state "unoccupy", label: '${name}', action: "setOccupancyStatus", icon: "st.presence.car.car"
 		}
 		standardTile("lockStatus", "device.keypadLockStatus", inactiveLabel: false, height: 2, width: 2, decoration: "flat") {
-			state "unlock", label: '${name}', action: "setLockStatus", icon: "st.presence.house.unlocked", defaultState: true
-			state "lock1", label: '${name}', action: "setLockStatus", icon: "st.presence.house.secured"
+			state "unlock", label: 'Controls Unlocked', action: "setLockStatus", icon: "st.presence.house.unlocked", defaultState: true
+			state "lock1", label: 'Controls Locked', action: "setLockStatus", icon: "st.presence.house.secured"
 		}
 
 		standardTile("refresh", "device.temperature", inactiveLabel: false, width: 2, height: 2, decoration: "flat") {
@@ -158,7 +163,7 @@ metadata {
 		}
 		standardTile("weatherTemperature", "device.outdoorTemp", inactiveLabel: false, width: 2, height: 2,
 			decoration: "flat", canChangeIcon: false) {
-			state "default", label: 'OutdoorTemp ${currentValue}°', unit: "dF",
+			state "default", label: 'Outdoor Temperature ${currentValue}°', unit: "dF",
 				icon: "st.Weather.weather2",
 				backgroundColor: "#ffffff"
 		}
@@ -173,11 +178,12 @@ metadata {
 		details(["thermostatMulti",
 			//			"heatLevelUp","heatingSetpoint","heatLevelDown",
 			"thermostatMode",
-			//			"occupancyStatus", 
-			//			"lockStatus",
-			//			"temperatureDisplayMode", 
-			//			"configure",
-			"refresh"
+			"weatherTemperature", 
+			"lockStatus",
+			//"temperatureDisplayMode", 
+			//"configure",
+			"refresh",
+            "sliderTemperature"
 		])
 	}
 }
@@ -487,6 +493,7 @@ def heatLevelDown() {
 
 
 }
+
 void setThermostatSetpoint(temp) {
 	setHeatingSetpoint(temp)
 }
