@@ -6,7 +6,8 @@ SVN-435
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 **/
 preferences {
-    input("zipcode", "text", title: "ZipCode", description: "Enter your ZipCode for outdoor Temp, or leave blank to display set point")
+    input("temperatureDisplayModePref", "enum", title: "Display Units / Clock Display", description: "System Default", options: ["Celsius / 24hr Clock", "Fahrenheit / 12hr Clock"])
+    input("zipcode", "text", title: "ZipCode (leave blank for set point display)", description: "Enter your ZipCode for outdoor Temp")
     input("BacklightAutoDimParam", "enum", title:"Backlight setting (default: blank)", description: "On Demand or Sensing", options: ["On Demand", "Sensing"], multiple: false, required: false)
 	input("trace", "bool", title: "Trace", description:"Set it to true to enable tracing")
 //	input("logFilter", "number", title: "(1=ERROR only,2=<1+WARNING>,3=<2+INFO>,4=<3+DEBUG>,5=<4+TRACE>)", range: "1..5",
@@ -967,7 +968,13 @@ void refresh_misc() {
             traceEvent(settings.logFilter,"Backlight Sensing",settings.trace)
             cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001)
         }       
-                
+             
+        if (temperatureDisplayModePref == "Celsius / 24hr Clock") {
+        	Deg_C()
+        }
+        else if (temperatureDisplayModePref == "Fahrenheit / 12hr Clock") {
+        	Deg_F()
+        }
 		sendZigbeeCommands(cmds)
 	}  
 	//refreshTime()    
@@ -980,7 +987,8 @@ void refresh_misc() {
 	def heatingSetpointRange= [low,high]
 	def isChanged= isStateChange(device, "heatingSetpointRange", heatingSetpointRange?.toString())    
 	sendEvent(name: "heatingSetpointRange", value: heatingSetpointRange, isStateChange: isChanged, displayed: (settings.trace?:false))
-	traceEvent(settings.logFilter,"refresh_misc>end", settings.trace)
+    
+    traceEvent(settings.logFilter,"refresh_misc>end", settings.trace)
  
 }
  
