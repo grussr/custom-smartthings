@@ -6,6 +6,8 @@ SVN-435
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 **/
 preferences {
+    input("absoluteLowSetPoint", "number", title: "Minimum Allowed Set Point", description: "Default")
+    input("absoluteHighSetPoint", "number", title: "Maximum Allowed Set Point", description: "Default")
     input("temperatureDisplayModePref", "enum", title: "Display Units / Clock Display", description: "System Default", options: ["Celsius / 24hr Clock", "Fahrenheit / 12hr Clock"])
     input("zipcode", "text", title: "ZipCode (leave blank for set point display)", description: "Enter your ZipCode for outdoor Temp")
     input("BacklightAutoDimParam", "enum", title:"Backlight setting (default: blank)", description: "On Demand or Sensing", options: ["On Demand", "Sensing"], multiple: false, required: false)
@@ -975,12 +977,23 @@ void refresh_misc() {
         else if (temperatureDisplayModePref == "Fahrenheit / 12hr Clock") {
         	Deg_F()
         }
-		sendZigbeeCommands(cmds)
+        sendZigbeeCommands(cmds)
 	}  
 	//refreshTime()    
 	traceEvent(settings.logFilter,"refresh_misc> about to  refresh other misc variables, scale=${state.scale}", settings.trace)
-	def heatingSetpointRangeHigh= (device.currentValue("heatingSetpointRangeHigh")) ?: (scale=='C')?30:99
-	def heatingSetpointRangeLow= (device.currentValue("heatingSetpointRangeLow")) ?: (scale=='C')?10:50
+	def heatingSetpointRangeHigh= ((device.currentValue("heatingSetpointRangeHigh")) ?: (scale=='C')?30:86) as int
+	def heatingSetpointRangeLow= ((device.currentValue("heatingSetpointRangeLow")) ?: (scale=='C')?5:41) as int
+	def requestedHeatingSetpointRangeHigh = settings.absoluteHighSetPoint ?: (scale=='C')?30:86
+    def requestedHeatingSetpointRangeLow  = settings.absoluteLowSetPoint ?: (scale=='C')?5:41
+
+	if (heatingSetpointRangeHigh != requestedHeatingSetpointRangeHigh) {
+    	setHeatingSetpointRangeHigh(requestedHeatingSetpointRangeHigh)
+    }
+
+	if (heatingSetpointRangeLow != requestedHeatingSetpointRangeLow) {
+    	traceEvent(settings.logFilter, "refresh_misc> old range low is $heatingSetpointRangeLow new low is $requestedHeatingSetpointRangeLow", settings.trace)
+    	setHeatingSetpointRangeLow(requestedHeatingSetpointRangeLow)
+    }
 
 	def low = heatingSetpointRangeLow.toFloat().round(1)
 	def high = heatingSetpointRangeHigh.toFloat().round(1)   
