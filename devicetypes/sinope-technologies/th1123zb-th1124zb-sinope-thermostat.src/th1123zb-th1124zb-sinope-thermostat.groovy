@@ -9,7 +9,8 @@ preferences {
     input("absoluteLowSetPoint", "number", title: "Minimum Allowed Set Point", description: "Default")
     input("absoluteHighSetPoint", "number", title: "Maximum Allowed Set Point", description: "Default")
     input("temperatureDisplayModePref", "enum", title: "Display Units / Clock Display", description: "System Default", options: ["Celsius / 24hr Clock", "Fahrenheit / 12hr Clock"])
-    input("zipcode", "text", title: "ZipCode (leave blank for set point display)", description: "Enter your ZipCode for outdoor Temp")
+    input("setPointDisplay", "enum", title: "Set Point Display", description: "System Default", options: ["Current Set Point", "Outdoor Temperature"])
+    input("zipcode", "text", title: "ZipCode (leave blank for current location)", description: "Current Location")
     input("BacklightAutoDimParam", "enum", title:"Backlight setting (default: blank)", description: "On Demand or Sensing", options: ["On Demand", "Sensing"], multiple: false, required: false)
 	input("trace", "bool", title: "Trace", description:"Set it to true to enable tracing")
 //	input("logFilter", "number", title: "(1=ERROR only,2=<1+WARNING>,3=<2+INFO>,4=<3+DEBUG>,5=<4+TRACE>)", range: "1..5",
@@ -938,7 +939,8 @@ void refresh_misc() {
 			outdoorTempValue = -outdoorTemp*100 - 65536
 			outdoorTempValue = -outdoorTempValue
 			outdoorTempToSend = zigbee.convertHexToInt(swapEndianHex(hex(outdoorTempValue)))
-			if (settings.zipcode) {
+			//if (settings.zipcode) {
+            if (settings.setPointDisplay == 'Outdoor Temperature') {
             	cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempToSend, [mfgCode: 0x119C])
 			}
 		} else {
@@ -946,7 +948,8 @@ void refresh_misc() {
 			int tempa = outdoorTempValue.intdiv(256)
 			int tempb = (outdoorTempValue % 256) * 256
 			outdoorTempToSend = tempa + tempb
- 			if (settings.zipcode) {
+ 			//if (settings.zipcode) {
+            if (settings.setPointDisplay == 'Outdoor Temperature') {
            		cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempToSend, [mfgCode: 0x119C])
             }
 		}
