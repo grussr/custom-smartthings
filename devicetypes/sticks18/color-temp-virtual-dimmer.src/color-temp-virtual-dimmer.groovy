@@ -25,37 +25,34 @@ metadata {
         command "updateTemp"
         
         attribute "kelvin", "number"
-	
 	}
 
+	preferences {
+    	input "minKelvin", "number", description: "Minimum", title: "Minimum Supported Color Temperature (Default 2700k)", range: "*..*", displayDuringSetup: false, required: true
+    	input "maxKelvin", "number", description: "Maximum", title: "Maximum Supported Color Temperature (Default 6500k)", range: "*..*", displayDuringSetup: false, required: true
+    }
 	// simulator metadata
 	simulator {
 	}
 
 	// UI tile definitions
-	tiles {
-    	valueTile("kelvin", "device.kelvin") {
-			state("device.kelvin", label:'${currentValue}k',
-				backgroundColors:[
-					[value: 2900, color: "#FFA757"],
-					[value: 3300, color: "#FFB371"],
-					[value: 3700, color: "#FFC392"],
-					[value: 4100, color: "#FFCEA6"],
-					[value: 4500, color: "#FFD7B7"],
-					[value: 4900, color: "#FFE0C7"],
-					[value: 5300, color: "#FFE8D5"],
-                    [value: 6600, color: "#FFEFE1"]
-				]
-			)
-		}
-        valueTile("level", "device.level", inactiveLabel: false, decoration: "flat") {
-			state "level", label: 'Level ${currentValue}%'
-		}
-        controlTile("levelSliderControl", "device.level", "slider", height: 1, width: 2, inactiveLabel: false) {
-			state "level", action:"switch level.setLevel"
-		}
-		main "kelvin"
-		details "levelSliderControl", "level", "kelvin"
+	tiles(scale: 2) {
+    multiAttributeTile(name:"switch", type: "lighting", width: 6, height: 4, canChangeIcon: true) {
+    tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
+        attributeState "on", label:'${name}', action:"switch.off", icon:"st.lights.philips.hue-single", backgroundColor:"#00a0dc", nextState:"turningOff"
+        attributeState "off", label:'${name}', action:"switch.on", icon:"st.lights.philips.hue-single", backgroundColor:"#ffffff", nextState:"turningOn"
+        attributeState "turningOn", label:'${name}', action:"switch.off", icon:"st.lights.philips.hue-single", backgroundColor:"#00a0dc", nextState:"turningOff"
+        attributeState "turningOff", label:'${name}', action:"switch.on", icon:"st.lights.philips.hue-single", backgroundColor:"#ffffff", nextState:"turningOn"
+    }
+    tileAttribute ("device.level", key: "SLIDER_CONTROL") {
+        attributeState "level", action:"switch level.setLevel"
+    }
+    tileAttribute ("kelvin", key: "SECONDARY_CONTROL") {
+    	attributeState "device.kelvin", label:'${currentValue}k'
+    }
+}
+		main "switch"
+		details "switch"
 	}
 }
 
@@ -65,13 +62,19 @@ def parse(String description) {
 def setLevel(value) {
     log.debug "Setting level to ${value}"
     sendEvent(name: "level", value: value)
-    parent.setLevel(this, value)
+    parent.setLevel(this, value, minKelvin, maxKelvin)
 }
 
 def on() {
+	log.debug "turning on"
+    sendEvent(name: "switch", value: "on")
+    parent.turnOn(this)
 }
 
 def off() {
+	log.debug "turning off"
+    sendEvent(name: "switch", value: "off")
+    parent.turnOff(this)
 }
 
 def updateTemp(value) {
