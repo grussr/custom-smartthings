@@ -78,15 +78,26 @@ private removeChildDevices(delete) {
 
 // Child device methods after this point. Instead of subscribing to child, have child directly call parent
 
-def setLevel(childDevice, value) {
+def setLevel(childDevice, value, minTemp, maxTemp) {
 	
-    def degrees = Math.round((value * 38) + 2700)
-  	if (degrees == 6462) { degrees = degrees + 38 }
-    
+    def degrees = Math.round((value * ((maxTemp - minTemp) / 100)) + minTemp)
+  	
     log.debug "Converting dimmer level ${value} to color temp ${degrees}..."
     childDevice.updateTemp(degrees)
+    cLights?.setLevel(value)
+    pause(1000)
     cLights?.setColorTemperature(degrees)
     
 
 
+}
+
+def turnOn(childDevice) {
+    log.debug "turning on lights"
+    cLights?.on()
+}
+
+def turnOff(childDevice) {
+    log.debug "turning off lights"
+    cLights?.off()
 }
