@@ -875,8 +875,7 @@ def configure(event = 'appTouch') {
 def refresh() {
 	if (!state.updatedLastRanAt || now() >= state.updatedLastRanAt + 20000) {
 		state.updatedLastRanAt = now()   
-	
-    	state?.scale = getTemperatureScale()
+        state?.scale = getTemperatureScale()
 		traceEvent(settings.logFilter, "refresh>scale=${state.scale}", settings.trace)
 		def cmds = []
 	
@@ -919,14 +918,15 @@ void refresh_misc() {
 	def cmds=[]    
 	if (weather) {
 		double tempValue    
-		int outdoorTemp = weather.current_observation.temp_c.toInteger()
-		traceEvent(settings.logFilter,"refresh>outdoorTemp: ${weather.current_observation.temp_c}C",settings.trace)
+		int outdoorTemp = weather.temperature.toInteger()
+		traceEvent(settings.logFilter,"refresh>outdoorTemp: ${weather.temperature}",settings.trace)
 		String outdoorTempString        
 		if (scale == "C") {
 			tempValue = outdoorTemp.toDouble().round(1)
 			outdoorTempString = String.format('%2.1f', tempValue)
 		} else {
-			tempValue = celsiusToFahrenheit(outdoorTemp).toDouble().round()
+			tempValue = outdoorTemp.toDouble().round()
+            outdoorTemp = fahrenheitToCelsius(outdoorTemp)
 			outdoorTempString = String.format('%2d', tempValue.intValue())
 		}
 		def isChange = isStateChange(device, name, outdoorTempString)
@@ -939,8 +939,7 @@ void refresh_misc() {
 			outdoorTempValue = -outdoorTemp*100 - 65536
 			outdoorTempValue = -outdoorTempValue
 			outdoorTempToSend = zigbee.convertHexToInt(swapEndianHex(hex(outdoorTempValue)))
-			//if (settings.zipcode) {
-            if (settings.setPointDisplay == 'Outdoor Temperature') {
+			if (settings.setPointDisplay == 'Outdoor Temperature') {
             	cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempToSend, [mfgCode: 0x119C])
 			}
 		} else {
@@ -948,14 +947,13 @@ void refresh_misc() {
 			int tempa = outdoorTempValue.intdiv(256)
 			int tempb = (outdoorTempValue % 256) * 256
 			outdoorTempToSend = tempa + tempb
- 			//if (settings.zipcode) {
+ 			traceEvent(settings.logFilter,"refresh>outdoorTempToSend: ${outdoorTempToSend}",settings.trace)
             if (settings.setPointDisplay == 'Outdoor Temperature') {
            		cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempToSend, [mfgCode: 0x119C])
             }
 		}
 		
-        
-      	def mytimezone = location.getTimeZone()
+        def mytimezone = location.getTimeZone()
         long dstSavings = 0
         if(mytimezone.useDaylightTime() && mytimezone.inDaylightTime(new Date())) {
           dstSavings = mytimezone.getDSTSavings()
@@ -982,7 +980,6 @@ void refresh_misc() {
         }
         sendZigbeeCommands(cmds)
 	}  
-	//refreshTime()    
 	traceEvent(settings.logFilter,"refresh_misc> about to  refresh other misc variables, scale=${state.scale}", settings.trace)
 	def heatingSetpointRangeHigh= ((device.currentValue("heatingSetpointRangeHigh")) ?: (scale=='C')?30:86) as int
 	def heatingSetpointRangeLow= ((device.currentValue("heatingSetpointRangeLow")) ?: (scale=='C')?5:41) as int
@@ -1022,10 +1019,10 @@ private def get_weather(zipcode) {
 	def weather
 	if (zipcode) {
 		traceEvent(settings.logFilter,"refresh>ZipCode: ${zipcode}",settings.trace)
-		weather = getWeatherFeature( "conditions", zipcode.trim() )
+		weather = getTwcConditions( zipcode.trim() )
 	} else {
 		traceEvent(settings.logFilter,"refresh>ZipCode: current location",settings.trace)	
-		weather = getWeatherFeature( "conditions" )
+		weather = getTwcConditions( )
 	}
 	return weather
 }
@@ -1036,18 +1033,6 @@ private hex(value) {
 	String hex=new BigInteger(Math.round(value).toString()).toString(16)
 	traceEvent(settings.logFilter,"hex>value=$value, hex=$hex",settings.trace)	
 	return hex    
-}
-
-def refreshTime() {
-	//IS NOT USED
-	def mytimezone = location.getTimeZone()
-	long secFrom2000 = (((now().toBigInteger() + mytimezone.rawOffset + mytimezone.dstSavings ) / 1000) - (10957 * 24 * 3600)).toLong() //number of second from 2000-01-01 00:00:00h
-	long secIndian = zigbee.convertHexToInt(swapEndianHex(hex(secFrom2000).toString())) //switch endianess
-	traceEvent(settings.logFilter, "refreshTime>myTime = ${secFrom2000}  reversed = ${secIndian}", settings.trace)
-	def cmds = []
-	cmds += zigbee.writeAttribute(0xFF01, 0x0020, 0x23, secIndian, [mfgCode: 0x119C])
-	sendZigbeeCommands(cmds)
-    //IS NOT USED
 }
 
 private String swapEndianHex(String hex) {
