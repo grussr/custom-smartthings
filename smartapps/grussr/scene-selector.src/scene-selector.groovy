@@ -34,7 +34,19 @@ preferences {
 def mainPage() {
 	dynamicPage(name: "mainPage"){
     	section("When this button is pressed...") {
-        	input name: "triggerButton", type: "capability.button", title: "Select Button", required: true, multiple: false
+        	input name: "triggerButton", type: "capability.button", title: "Select Button", required: true, multiple: false, submitOnChange: true
+			state.buttonCount = triggerButton.currentValue('numberOfButtons')
+            if(state.buttonCount<1) {
+            	state.buttonCount = 1
+            }
+            def buttonList = []
+            for(i in 1..state.buttonCount) {
+            	buttonList << i
+            }
+            if (state.buttonCount > 1) {
+            	log.debug buttonList
+            	input name: "whichButton", type: "enum", title: "Which button?", required: true, multiple: false, options: buttonList
+            }
         }
 		section("Choose your scenes") {
             def sceneList = getScenes()
@@ -42,7 +54,7 @@ def mainPage() {
             input name: "selectedScene2", type: "enum", title: "Scene #2", required: false, multiple: false, options: sceneList
             input name: "selectedScene3", type: "enum", title: "Scene #3", required: false, multiple: false, options: sceneList
             input name: "selectedScene4", type: "enum", title: "Scene #4", required: false, multiple: false, options: sceneList
- }
+ 		}
 	}
 }
 
@@ -97,6 +109,21 @@ def getScenes() {
     return result.sort()
 }
 
+def setScene(sceneId) {
+    def params = [
+        uri: "https://api.smartthings.com/v1/scenes/${sceneId}/execute",
+        headers: [ Authorization: "Bearer " + appSettings.apikey ]
+    ]
+
+    try {
+        httpPost(params) { resp ->
+        log.debug "response data: ${resp.data}"
+        }
+    } catch (e) {
+        log.error "something went wrong: $e"
+    }	
+}
+
 def getSceneId(sceneName) {
 	return state.idMap[sceneName]
 }
@@ -114,15 +141,45 @@ def updated() {
 }
 
 def initialize() {
-    log.debug state
-	state.lastscene = 0
+    state.lastScene = 0
+    def numberOfScenes = 1
     state.activeScenes = [1: getSceneId(selectedScene1)]
-    log.debug state
-    subscribe(triggerButton, "button.pushed", onPush())
+    if (selectedScene2) {
+    	numberOfScenes = numberOfScenes + 1
+        state.activeScenes << ["${numberOfScenes}": getSceneId(selectedScene2)]
+    }
+    if (selectedScene3) {
+    	numberOfScenes = numberOfScenes + 1
+        state.activeScenes << ["${numberOfScenes}": getSceneId(selectedScene3)]
+    }
+    if (selectedScene4) {
+    	numberOfScenes = numberOfScenes + 1
+        state.activeScenes << ["${numberOfScenes}": getSceneId(selectedScene4)]
+    }
+    log.debug "active scenes: ${state.activeScenes}"
+    if (triggerButton.currentValue("numberOfButtons") > 1) {
+    	state.whichButton = whichButton
+    }
+    else {
+    	state.whichButton = 1
+    }
+    subscribe(triggerButton, "button.pushed", onPush)
 	
 }
 
-def onPush() {
+def onPush(evt) {
 	log.debug "button pushed"
+    if (evt.jsonData.buttonNumber.toInteger() != state.whichButton.toInteger()) {
+    	log.debug "other button pushed.  get out of here expected ${state.whichButton} got ${evt.jsonData.buttonNumber}"
+        state.lastScene = 0
+        return
+    }
     
+    state.lastScene = state.lastScene + 1
+    if (!state.activeScenes["${state.lastScene}"])
+    {
+    	state.lastScene = 1 
+    }
+    log.debug "activating scene ${state.lastScene} with id ${state.activeScenes["${state.lastScene}"]}"
+    setScene(state.activeScenes["${state.lastScene}"])
 }
