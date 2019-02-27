@@ -15,11 +15,10 @@ preferences {
 
 def mainPage() {
 	dynamicPage(name: "mainPage"){
-		section("Choose your Color Temp bulbs") {
-			input "cLights", "capability.color temperature", title: "Select Color Temp Light", required: true, multiple: false
-  		}
-        section("Bulb Information") {
-    		input "minKelvin", "number", description: "Minimum", title: "Minimum Supported Color Temperature (Default 2700k)", range: "*..*", displayDuringSetup: false, defaultValue: 2700
+		section("Adaptive Color Temperature") {
+            paragraph "Add color temperature lights here.  As brightness increases/decreases, color temperature will be adjusted accordingly."
+			input "cLights", "capability.color temperature", title: "Select Color Temp Light", required: true, multiple: true
+  			input "minKelvin", "number", description: "Minimum", title: "Minimum Supported Color Temperature (Default 2700k)", range: "*..*", displayDuringSetup: false, defaultValue: 2700
     		input "maxKelvin", "number", description: "Maximum", title: "Maximum Supported Color Temperature (Default 6500k)", range: "*..*", displayDuringSetup: false, defaultValue: 6500
 			input "colorChangeDelay", "number", description: "Delay in ms", title: "Delay in ms before changing temperatures (needed by some bulbs like Ikea TRADFRI)", range: "0..*", displayDuringSetup: false, defaultValue: 0
         }
@@ -50,19 +49,17 @@ def namePage() {
 }
 
 def defaultLabel() {
-    //def bulbLabel = cLights.size() == 1 ? cLights[0].displayName : cLights[0].displayName + ", etc..."
-    "Adaptive Color Temperature ${cLights.displayName}"
+    def tempLabel = cLights.size() == 1 ? cLights[0].displayName : cLights[0].displayName + ", etc..."
+    "Adjust ${tempLabel} color temperature from ${minKelvin}K to ${maxKelvin}K"
 }
 
 def installed() {
 	log.debug "Installed with settings: ${settings}"
-
 	initialize()
 }
 
 def updated() {
 	log.debug "Updated with settings: ${settings}"
-
 	unsubscribe()
 	initialize()
 }
@@ -76,17 +73,12 @@ def uninstalled() {
 }
 
 def onSetLevel(evt) {
-	log.debug "in onSetLevel, value is ${evt.value}"
-    setLevel(cLights, evt.value.toFloat())
+    setLevel(evt.device, evt.value.toFloat())
 }
 
-// Child device methods after this point. Instead of subscribing to child, have child directly call parent
-
 def setLevel(childDevice, value) {
-	
     def degrees = Math.round((value * ((maxKelvin - minKelvin) / 100)) + minKelvin)
-  	
-    log.debug "Converting dimmer level ${value} to color temp ${degrees} after a ${colorChangeDelay}ms delay..."
+  	log.debug "Converting dimmer level ${value} to color temp ${degrees} after a ${colorChangeDelay}ms delay..."
     pause(colorChangeDelay)
     childDevice.setColorTemperature(degrees)
 }
