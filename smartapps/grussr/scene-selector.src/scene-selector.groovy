@@ -143,19 +143,11 @@ def updated() {
 def initialize() {
     state.lastScene = 0
     def numberOfScenes = 1
-    state.activeScenes = [1: getSceneId(selectedScene1)]
-    if (selectedScene2) {
-    	numberOfScenes = numberOfScenes + 1
-        state.activeScenes << ["${numberOfScenes}": getSceneId(selectedScene2)]
-    }
-    if (selectedScene3) {
-    	numberOfScenes = numberOfScenes + 1
-        state.activeScenes << ["${numberOfScenes}": getSceneId(selectedScene3)]
-    }
-    if (selectedScene4) {
-    	numberOfScenes = numberOfScenes + 1
-        state.activeScenes << ["${numberOfScenes}": getSceneId(selectedScene4)]
-    }
+    state.activeScenes = addScene(selectedScene1, state.activeScenes)
+    state.activeScenes << addScene(selectedScene2, state.activeScenes)
+    state.activeScenes << addScene(selectedScene3, state.activeScenes)
+    state.activeScenes << addScene(selectedScene4, state.activeScenes)
+    
     log.debug "active scenes: ${state.activeScenes}"
     if (triggerButton.currentValue("numberOfButtons") > 1) {
     	state.whichButton = whichButton
@@ -165,6 +157,15 @@ def initialize() {
     }
     subscribe(triggerButton, "button.pushed", onPush)
 	
+}
+
+def addScene(sceneSlot, sceneMap) {
+	if (sceneSlot) {
+    	return ["${sceneMap.size()}": getSceneId(sceneSlot)]
+    }
+    else {
+    	return null
+    }
 }
 
 def onPush(evt) {
