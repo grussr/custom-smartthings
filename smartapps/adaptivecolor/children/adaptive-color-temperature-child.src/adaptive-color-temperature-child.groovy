@@ -65,7 +65,7 @@ def updated() {
 }
 
 def initialize() {
-    subscribe(cLights, "switch.setLevel", onSetLevel)
+	atomicState.levelExecutionCount = 0
     subscribe(cLights, "level", onSetLevel)
 }
 
@@ -77,8 +77,13 @@ def onSetLevel(evt) {
 }
 
 def setLevel(childDevice, value) {
+	while (atomicState.levelExecutionCount > 0) {
+    	pause(10)
+    }
+    atomicState.levelExecutionCount = atomicState.levelExecutionCount + 1
     def degrees = Math.round((value * ((maxKelvin - minKelvin) / 100)) + minKelvin)
   	log.debug "Converting dimmer level ${value} to color temp ${degrees} after a ${colorChangeDelay}ms delay..."
     pause(colorChangeDelay)
     childDevice.setColorTemperature(degrees)
+    atomicState.levelExecutionCount = atomicState.levelExecutionCount - 1
 }
