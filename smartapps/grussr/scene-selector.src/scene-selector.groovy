@@ -143,7 +143,8 @@ def updated() {
 def initialize() {
     state.lastScene = 0
     def numberOfScenes = 1
-    state.activeScenes = addScene(selectedScene1, state.activeScenes)
+    state.activeScenes = [:]
+    state.activeScenes << addScene(selectedScene1, state.activeScenes)
     state.activeScenes << addScene(selectedScene2, state.activeScenes)
     state.activeScenes << addScene(selectedScene3, state.activeScenes)
     state.activeScenes << addScene(selectedScene4, state.activeScenes)
@@ -161,7 +162,8 @@ def initialize() {
 
 def addScene(sceneSlot, sceneMap) {
 	if (sceneSlot) {
-    	return ["${sceneMap.size()}": getSceneId(sceneSlot)]
+    	log.debug "Adding scene ${sceneSlot} to position ${sceneMap.size() + 1}"
+    	return ["${sceneMap.size() + 1}": getSceneId(sceneSlot)]
     }
     else {
     	return null
