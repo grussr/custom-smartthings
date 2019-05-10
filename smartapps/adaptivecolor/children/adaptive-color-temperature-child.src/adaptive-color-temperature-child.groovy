@@ -77,8 +77,14 @@ def onSetLevel(evt) {
 }
 
 def setLevel(childDevice, value) {
+    def waitCount = 0
 	while (atomicState.levelExecutionCount > 0) {
     	pause(10)
+        waitCount = waitCount + 1
+        if (waitCount > 500) {
+            log.debug "Did not get control after 5 seconds.  Aborting.  If you see this error often open smartapp settings page to reinit."
+            return
+        }
     }
     atomicState.levelExecutionCount = atomicState.levelExecutionCount + 1
     def degrees = Math.round((value * ((maxKelvin - minKelvin) / 100)) + minKelvin)
