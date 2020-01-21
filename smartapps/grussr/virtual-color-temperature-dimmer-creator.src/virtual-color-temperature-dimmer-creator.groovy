@@ -9,8 +9,8 @@ definition(
     iconX2Url: "https://raw.githubusercontent.com/MichaelStruck/SmartThingsPublic/master/smartapps/michaelstruck/alexa-helper.src/Alexa@2x.png",
     iconX3Url: "https://raw.githubusercontent.com/MichaelStruck/SmartThingsPublic/master/smartapps/michaelstruck/alexa-helper.src/Alexa@2x.png")
 preferences {
-    page name:"mainPage"
     page name:"pageAbout"
+    page name:"mainPage"
     page name:"pageAddSwitch"
 }
 def mainPage() {

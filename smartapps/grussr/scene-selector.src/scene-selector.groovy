@@ -100,7 +100,7 @@ def getScenes() {
         resp.data.items.each {
         	result << it.sceneName
             sceneIdMap[it.sceneName] = it.sceneId
-        }
+            }
         }
     } catch (e) {
         log.error "something went wrong: $e"
