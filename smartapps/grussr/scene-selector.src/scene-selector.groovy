@@ -55,6 +55,9 @@ def mainPage() {
             input name: "selectedScene3", type: "enum", title: "Scene #3", required: false, multiple: false, options: sceneList
             input name: "selectedScene4", type: "enum", title: "Scene #4", required: false, multiple: false, options: sceneList
  		}
+        section("(Optional) When this device is off, the scene counter resets") {
+        	input name: "canaryDevices", type: "capability.switch", title: "Canary device", required: false, multiple: true, submitOnChange: true
+        }
 	}
 }
 
@@ -82,7 +85,6 @@ def namePage() {
 }
 
 def defaultLabel() {
-    //def bulbLabel = cLights.size() == 1 ? cLights[0].displayName : cLights[0].displayName + ", etc..."
     "Selectascene"
 }
 
@@ -157,7 +159,7 @@ def initialize() {
     	state.whichButton = 1
     }
     subscribe(triggerButton, "button.pushed", onPush)
-	
+	subscribe(canaryDevices, "switch.off", onSwitchOff)
 }
 
 def addScene(sceneSlot, sceneMap) {
@@ -185,4 +187,18 @@ def onPush(evt) {
     }
     log.debug "activating scene ${state.lastScene} with id ${state.activeScenes["${state.lastScene}"]}"
     setScene(state.activeScenes["${state.lastScene}"])
+}
+
+def onSwitchOff(evt) {
+	log.debug "canary device turned off"
+    def allOff = true
+    canaryDevices.each { device ->
+    	if (device.currentValue('switch') == 'on') {
+        	allOff = false
+        }
+    }
+    if (allOff) {
+    	log.debug "all canary devices off, resetting scene count"
+        state.lastScene = 0
+    }
 }
