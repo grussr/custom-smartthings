@@ -1,22 +1,16 @@
 /**
 Copyright Sinopé Technologies
-1.0.1
-SVN-435
+1.0.5
+SVN-503
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 **/
 preferences {
-    input("absoluteLowSetPoint", "number", title: "Minimum Allowed Set Point", description: "Default")
-    input("absoluteHighSetPoint", "number", title: "Maximum Allowed Set Point", description: "Default")
-    input("temperatureDisplayModePref", "enum", title: "Display Units / Clock Display", description: "System Default", options: ["Celsius / 24hr Clock", "Fahrenheit / 12hr Clock"])
-    input("setPointDisplay", "enum", title: "Set Point Display", description: "System Default", options: ["Current Set Point", "Outdoor Temperature"])
-    input("zipcode", "text", title: "ZipCode (leave blank for current location)", description: "Current Location")
     input("BacklightAutoDimParam", "enum", title:"Backlight setting (default: blank)", description: "On Demand or Sensing", options: ["On Demand", "Sensing"], multiple: false, required: false)
-	input("trace", "bool", title: "Trace", description:"Set it to true to enable tracing")
-//	input("logFilter", "number", title: "(1=ERROR only,2=<1+WARNING>,3=<2+INFO>,4=<3+DEBUG>,5=<4+TRACE>)", range: "1..5",
-//		description: "optional")
-	input("logFilter", "enum", title: "Trace Level (valid only if tracing is enabled)", options: ["Errors", "Warnings", "Info", "Debug", "Trace"], multiple: false, 
-        required: false, description: "optional")
+   	input("EnableOutdorTemperatureParam", "bool", title: "enable/disable outdoor temperature", description: "Set it to true to enable outdoor temperature on the thermostat")
+    input("trace", "bool", title: "Trace", description:"Set it to true to enable tracing")
+	input("logFilter", "number", title: "(1=ERROR only,2=<1+WARNING>,3=<2+INFO>,4=<3+DEBUG>,5=<4+TRACE>)", range: "1..5",
+		description: "optional")
 }
 
 metadata {
@@ -66,14 +60,11 @@ metadata {
 			profileId: "0104",
 			inClusters: "0000,0003,0004,0005,0201,0204,0402,0B04,0B05",
 			outClusters: "0019"
-            
-		fingerprint endpoint: "1",
-			profileId: "0104",
-			inClusters: "0000,0003,0004,0005,0201,0204,0402,0B04,0B05",
-			outClusters: "0019"
 
-		//		fingerprint profileId: "0104", inClusters: "0000,0003,0004,0005,0201,0204,0402,0B04,0B05", manufacturer: "Sinope Technologies", model: "TH1123ZB"
-		//		fingerprint profileId: "0104", inClusters: "0000,0003,0004,0005,0201,0204,0402,0B04,0B05", manufacturer: "Sinope Technologies", model: "TH1124ZB"
+        fingerprint endpoint: "1",
+        	profileId: "0104",
+        	inClusters: "0000,0003,0004,0005,0201,0204,0402,0B04,0B05,FF01",
+        	outClusters: "0019,FF01"
 	}
 
 
@@ -86,7 +77,7 @@ metadata {
 
 		multiAttributeTile(name: "thermostatMulti", type: "thermostat", width: 6, height: 4, canChangeIcon: true) {
 			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
-				attributeState("default", label: '${currentValue}°', unit: "dF", backgroundColor: "#269bd2", defaultState: true)
+				attributeState("default", label: '${currentValue}', unit: "dF", backgroundColor: "#269bd2")
 			}
 			tileAttribute("device.heatingSetpoint", key: "VALUE_CONTROL") {
 				attributeState("VALUE_UP", action: "heatLevelUp")
@@ -105,18 +96,13 @@ metadata {
 				attributeState("heat", label: '${name}')
 			}
 			tileAttribute("device.heatingSetpoint", key: "HEATING_SETPOINT") {
-				attributeState("default", label: '${currentValue}°', unit: "dF", defaultState: true)
+				attributeState("default", label: '${currentValue}', unit: "dF")
 			}
-		}
-        
-        controlTile("sliderTemperature", "device.heatingSetpoint", "slider", height: 2, width: 2, range: "(41..86)") {
-                // TODO: fix range to be dynamic
-    			state "default", action:"setThermostatSetpoint"
 		}
 		//-- Value Tiles -------------------------------------------------------------------------------------------
 
 		valueTile("temperature", "device.temperature", width: 4, height: 2) {
-			state("temperature", label: '${currentValue}°',
+			state("temperature", label: '${currentValue}',
 				backgroundColors: getBackgroundColors()
 			)
 		}
@@ -128,7 +114,7 @@ metadata {
 		//-- Standard Tiles ----------------------------------------------------------------------------------------
 
 		valueTile("heatingSetpoint", "device.heatingSetpoint", inactiveLabel: false, width: 2, height: 2, decoration: "flat") {
-			state "heat", label: '${currentValue}°', backgroundColor: "#ffffff"
+			state "heat", label: '${currentValue}', backgroundColor: "#ffffff"
 		}
 
 		standardTile("heatLevelUp", "device.heatingSetpoint", inactiveLabel: false, width: 2, height: 2, decoration: "flat") {
@@ -160,8 +146,8 @@ metadata {
 			state "unoccupy", label: '${name}', action: "setOccupancyStatus", icon: "st.presence.car.car"
 		}
 		standardTile("lockStatus", "device.keypadLockStatus", inactiveLabel: false, height: 2, width: 2, decoration: "flat") {
-			state "unlock", label: 'Controls Unlocked', action: "setLockStatus", icon: "st.presence.house.unlocked", defaultState: true
-			state "lock1", label: 'Controls Locked', action: "setLockStatus", icon: "st.presence.house.secured"
+			state "unlock", label: '${name}', action: "setLockStatus", icon: "st.presence.house.unlocked", defaultState: true
+			state "lock1", label: '${name}', action: "setLockStatus", icon: "st.presence.house.secured"
 		}
 
 		standardTile("refresh", "device.temperature", inactiveLabel: false, width: 2, height: 2, decoration: "flat") {
@@ -169,7 +155,7 @@ metadata {
 		}
 		standardTile("weatherTemperature", "device.outdoorTemp", inactiveLabel: false, width: 2, height: 2,
 			decoration: "flat", canChangeIcon: false) {
-			state "default", label: 'Outdoor Temperature ${currentValue}°', unit: "dF",
+			state "default", label: 'OutdoorTemp ${currentValue}', unit: "dF",
 				icon: "st.Weather.weather2",
 				backgroundColor: "#ffffff"
 		}
@@ -184,11 +170,10 @@ metadata {
 		details(["thermostatMulti",
 			//			"heatLevelUp","heatingSetpoint","heatLevelDown",
 			"thermostatMode",
-            "weatherTemperature", 
-			"lockStatus",
-			//"temperatureDisplayMode", 
-			//"configure",
-            "sliderTemperature",
+			//			"occupancyStatus", 
+			//			"lockStatus",
+			//			"temperatureDisplayMode", 
+			//			"configure",
 			"refresh"
 		])
 	}
@@ -499,7 +484,6 @@ def heatLevelDown() {
 
 
 }
-
 void setThermostatSetpoint(temp) {
 	setHeatingSetpoint(temp)
 }
@@ -875,7 +859,8 @@ def configure(event = 'appTouch') {
 def refresh() {
 	if (!state.updatedLastRanAt || now() >= state.updatedLastRanAt + 20000) {
 		state.updatedLastRanAt = now()   
-        state?.scale = getTemperatureScale()
+	
+    	state?.scale = getTemperatureScale()
 		traceEvent(settings.logFilter, "refresh>scale=${state.scale}", settings.trace)
 		def cmds = []
 	
@@ -912,48 +897,49 @@ def refresh() {
 
 void refresh_misc() {
 
-	def scale=(state?.scale) ?: getTemperatureScale()
-	def weather = get_weather(settings.zipcode)
-	traceEvent(settings.logFilter,"refresh_misc>begin, scale=$scale, settings.zipcode=${settings.zipcode}, weather=$weather", settings.trace)
-	def cmds=[]    
+    def weather = get_weather()
+	traceEvent(settings.logFilter,"refresh_misc>begin, settings.EnableOutdorTemperatureParam=${settings.EnableOutdorTemperatureParam}, weather=$weather", settings.trace)
+	def cmds=[]
+
 	if (weather) {
 		double tempValue    
-		int outdoorTemp = weather.temperature.toInteger()
-		traceEvent(settings.logFilter,"refresh>outdoorTemp: ${weather.temperature}",settings.trace)
+		int outdoorTemp = weather.toInteger()
+        if(state?.scale == 'F')
+        {//the value sent to the thermostat must be in C
+        //the thermostat make the conversion to F
+        	outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble().round()
+        }
 		String outdoorTempString        
-		if (scale == "C") {
-			tempValue = outdoorTemp.toDouble().round(1)
-			outdoorTempString = String.format('%2.1f', tempValue)
-		} else {
-			tempValue = outdoorTemp.toDouble().round()
-            outdoorTemp = fahrenheitToCelsius(outdoorTemp)
-			outdoorTempString = String.format('%2d', tempValue.intValue())
-		}
 		def isChange = isStateChange(device, name, outdoorTempString)
 		def isDisplayed = isChange        
 		sendEvent( name: "outdoorTemp", value: outdoorTempString, unit: scale, displayed: isDisplayed)
 		int outdoorTempValue
 		int outdoorTempToSend  
-		        
-		if (outdoorTemp < 0) {
-			outdoorTempValue = -outdoorTemp*100 - 65536
-			outdoorTempValue = -outdoorTempValue
-			outdoorTempToSend = zigbee.convertHexToInt(swapEndianHex(hex(outdoorTempValue)))
-			if (settings.setPointDisplay == 'Outdoor Temperature') {
-            	cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempToSend, [mfgCode: 0x119C])
-			}
-		} else {
-			outdoorTempValue = outdoorTemp*100
-			int tempa = outdoorTempValue.intdiv(256)
-			int tempb = (outdoorTempValue % 256) * 256
-			outdoorTempToSend = tempa + tempb
- 			traceEvent(settings.logFilter,"refresh>outdoorTempToSend: ${outdoorTempToSend}",settings.trace)
-            if (settings.setPointDisplay == 'Outdoor Temperature') {
-           		cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempToSend, [mfgCode: 0x119C])
+
+        if(settings.EnableOutdorTemperatureParam)
+        {
+        	cmds += zigbee.writeAttribute(0xFF01, 0x0011, 0x21, 10800)//set the outdoor temperature timeout to 3 hours
+            if (outdoorTemp < 0) {
+                outdoorTempValue = -outdoorTemp*100 - 65536
+                outdoorTempValue = -outdoorTempValue
+                outdoorTempToSend = zigbee.convertHexToInt(swapEndianHex(hex(outdoorTempValue)))
+                cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempToSend, [mfgCode: 0x119C])
+            } else {
+                outdoorTempValue = outdoorTemp*100
+                int tempa = outdoorTempValue.intdiv(256)
+                int tempb = (outdoorTempValue % 256) * 256
+                outdoorTempToSend = tempa + tempb
+                cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempToSend, [mfgCode: 0x119C])
             }
-		}
-		
-        def mytimezone = location.getTimeZone()
+        }
+        else
+        {//delete outdoorTemp
+        	//the outdoor temperature cannot be directly erased from the thermostat.
+            //to erase it rapidly, the external temperature timeout must be set to the minimal value (30sec)
+        	cmds += zigbee.writeAttribute(0xFF01, 0x0011, 0x21, 30)//set the outdoor temperature timeout to 30sec
+        }
+        
+      	def mytimezone = location.getTimeZone()
         long dstSavings = 0
         if(mytimezone.useDaylightTime() && mytimezone.inDaylightTime(new Date())) {
           dstSavings = mytimezone.getDSTSavings()
@@ -971,37 +957,20 @@ void refresh_misc() {
             traceEvent(settings.logFilter,"Backlight Sensing",settings.trace)
             cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001)
         }       
-             
-        if (temperatureDisplayModePref == "Celsius / 24hr Clock") {
-        	Deg_C()
-        }
-        else if (temperatureDisplayModePref == "Fahrenheit / 12hr Clock") {
-        	Deg_F()
-        }
-        sendZigbeeCommands(cmds)
+                
+		sendZigbeeCommands(cmds)
 	}  
+	//refreshTime()    
 	traceEvent(settings.logFilter,"refresh_misc> about to  refresh other misc variables, scale=${state.scale}", settings.trace)
-	def heatingSetpointRangeHigh= ((device.currentValue("heatingSetpointRangeHigh")) ?: (scale=='C')?30:86) as int
-	def heatingSetpointRangeLow= ((device.currentValue("heatingSetpointRangeLow")) ?: (scale=='C')?5:41) as int
-	def requestedHeatingSetpointRangeHigh = settings.absoluteHighSetPoint ?: (scale=='C')?30:86
-    def requestedHeatingSetpointRangeLow  = settings.absoluteLowSetPoint ?: (scale=='C')?5:41
-
-	if (heatingSetpointRangeHigh != requestedHeatingSetpointRangeHigh) {
-    	setHeatingSetpointRangeHigh(requestedHeatingSetpointRangeHigh)
-    }
-
-	if (heatingSetpointRangeLow != requestedHeatingSetpointRangeLow) {
-    	traceEvent(settings.logFilter, "refresh_misc> old range low is $heatingSetpointRangeLow new low is $requestedHeatingSetpointRangeLow", settings.trace)
-    	setHeatingSetpointRangeLow(requestedHeatingSetpointRangeLow)
-    }
+	def heatingSetpointRangeHigh= (device.currentValue("heatingSetpointRangeHigh")) ?: (scale=='C')?30:99
+	def heatingSetpointRangeLow= (device.currentValue("heatingSetpointRangeLow")) ?: (scale=='C')?10:50
 
 	def low = heatingSetpointRangeLow.toFloat().round(1)
 	def high = heatingSetpointRangeHigh.toFloat().round(1)   
 	def heatingSetpointRange= [low,high]
 	def isChanged= isStateChange(device, "heatingSetpointRange", heatingSetpointRange?.toString())    
 	sendEvent(name: "heatingSetpointRange", value: heatingSetpointRange, isStateChange: isChanged, displayed: (settings.trace?:false))
-    
-    traceEvent(settings.logFilter,"refresh_misc>end", settings.trace)
+	traceEvent(settings.logFilter,"refresh_misc>end", settings.trace)
  
 }
  
@@ -1015,15 +984,11 @@ void sendZigbeeCommands(cmds, delay = 1000) {
 }
 
 
-private def get_weather(zipcode) {
-	def weather
-	if (zipcode) {
-		traceEvent(settings.logFilter,"refresh>ZipCode: ${zipcode}",settings.trace)
-		weather = getTwcConditions( zipcode.trim() )
-	} else {
-		traceEvent(settings.logFilter,"refresh>ZipCode: current location",settings.trace)	
-		weather = getTwcConditions( )
-	}
+private def get_weather() {
+	def mymap = getTwcConditions()
+    traceEvent(settings.logFilter,"get_weather> $mymap",settings.trace)	
+    def weather = mymap.temperature
+    traceEvent(settings.logFilter,"get_weather> $weather",settings.trace)	
 	return weather
 }
 
@@ -1033,6 +998,18 @@ private hex(value) {
 	String hex=new BigInteger(Math.round(value).toString()).toString(16)
 	traceEvent(settings.logFilter,"hex>value=$value, hex=$hex",settings.trace)	
 	return hex    
+}
+
+def refreshTime() {
+	//IS NOT USED
+	def mytimezone = location.getTimeZone()
+	long secFrom2000 = (((now().toBigInteger() + mytimezone.rawOffset + mytimezone.dstSavings ) / 1000) - (10957 * 24 * 3600)).toLong() //number of second from 2000-01-01 00:00:00h
+	long secIndian = zigbee.convertHexToInt(swapEndianHex(hex(secFrom2000).toString())) //switch endianess
+	traceEvent(settings.logFilter, "refreshTime>myTime = ${secFrom2000}  reversed = ${secIndian}", settings.trace)
+	def cmds = []
+	cmds += zigbee.writeAttribute(0xFF01, 0x0020, 0x23, secIndian, [mfgCode: 0x119C])
+	sendZigbeeCommands(cmds)
+    //IS NOT USED
 }
 
 private String swapEndianHex(String hex) {
@@ -1071,31 +1048,13 @@ private int get_LOG_TRACE() {
 	return 5
 }
 
-private int getLogFilterLevel(logFilter) {
-    switch (logFilter) {
-         case "Errors":
-             return 1
-         case "Warnings":
-             return 2
-         case "Info":
-             return 3
-         case "Debug":
-             return 4
-         case "Trace":
-             return 5
-         default:
-             return 0
-    }
-}
-
 def traceEvent(logFilter, message, displayEvent = false, traceLevel = 4, sendMessage = true) {
 	int LOG_ERROR = get_LOG_ERROR()
 	int LOG_WARN = get_LOG_WARN()
 	int LOG_INFO = get_LOG_INFO()
 	int LOG_DEBUG = get_LOG_DEBUG()
 	int LOG_TRACE = get_LOG_TRACE()
-    int logFilterInt = getLogFilterLevel(logFilter)
-	int filterLevel = (logFilterInt > 0) ? logFilterInt : get_LOG_WARN()
+	int filterLevel = (logFilter) ? logFilter.toInteger() : get_LOG_WARN()
     
 	if ((displayEvent) || (sendMessage)) {
 		def results = [
